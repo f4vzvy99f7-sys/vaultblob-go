@@ -1,0 +1,5 @@
+# Real compiled native libraries — never commit binaries to main branch
+# CI replaces 0-byte placeholders in release tags only
+bin/**/*.so
+bin/**/*.dylib
+bin/**/*.dll
