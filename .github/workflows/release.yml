@@ -1,0 +1,75 @@
+name: Release Go modules
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag (e.g. v0.1.0)"
+        required: true
+      core_repo:
+        description: "vaultblob-core repo (owner/repo)"
+        required: true
+        default: f4vzvy99f7-sys/vaultblob-core
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download native libraries from vaultblob-core release
+        run: |
+          gh release download "${{ inputs.version }}" \
+            --repo "${{ inputs.core_repo }}" \
+            --dir /tmp/native-libs
+
+      - name: Install native libraries into bin/
+        run: |
+          declare -A MAP
+          MAP["libvaultblob.so-linux-amd64"]="linux_amd64/libvaultblob.so"
+          MAP["libvaultblob.so-linux-arm64"]="linux_arm64/libvaultblob.so"
+          MAP["libvaultblob.dylib-darwin-amd64"]="darwin_amd64/libvaultblob.dylib"
+          MAP["libvaultblob.dylib-darwin-arm64"]="darwin_arm64/libvaultblob.dylib"
+          MAP["vaultblob.dll-windows-amd64"]="windows_amd64/vaultblob.dll"
+
+          for asset in "${!MAP[@]}"; do
+            if [ -f "/tmp/native-libs/$asset" ]; then
+              cp "/tmp/native-libs/$asset" "bin/${MAP[$asset]}"
+              echo "Installed $asset → bin/${MAP[$asset]}"
+            else
+              echo "Warning: $asset not found in release assets"
+            fi
+          done
+
+      - name: Commit, tag, and push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add bin/
+          git commit -m "Update native binaries for ${{ inputs.version }}"
+
+          TAG="${{ inputs.version }}"
+          git tag "$TAG"
+          git tag "bin/darwin_amd64/$TAG"
+          git tag "bin/darwin_arm64/$TAG"
+          git tag "bin/linux_amd64/$TAG"
+          git tag "bin/linux_arm64/$TAG"
+          git tag "bin/windows_amd64/$TAG"
+
+          git remote set-url origin \
+            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git push origin --tags
+
+      - name: Create GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ inputs.version }}" \
+            --title "${{ inputs.version }}" \
+            --notes "Auto-generated from vaultblob-core ${{ inputs.version }}"
