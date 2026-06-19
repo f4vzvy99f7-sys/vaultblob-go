@@ -40,8 +40,7 @@ func ensureLib() error {
 			return
 		}
 
-		purego.RegisterLibFunc(&vaultOpen, handle, "vaultblob_open")
-		purego.RegisterLibFunc(&vaultOpenExisting, handle, "vaultblob_open_existing")
+		purego.RegisterLibFunc(&vaultOpenVault, handle, "vaultblob_open_vault")
 		purego.RegisterLibFunc(&vaultClose, handle, "vaultblob_close")
 		purego.RegisterLibFunc(&vaultPutFile, handle, "vaultblob_put_file")
 		purego.RegisterLibFunc(&vaultReadFile, handle, "vaultblob_read_file")
@@ -76,9 +75,7 @@ func libFilename() string {
 }
 
 var (
-	vaultOpen func(path, password *byte, maxChunkSize, maxBlobSize uint64, split, stripe, verbose int32, errOut **byte) uintptr
-
-	vaultOpenExisting func(path, password *byte, verbose int32, errOut **byte) uintptr
+	vaultOpenVault func(path, vaultID, masterKey *byte, maxChunkSize, maxBlobSize uint64, split, stripe, verbose int32, errOut **byte) uintptr
 
 	vaultClose func(session uintptr)
 
