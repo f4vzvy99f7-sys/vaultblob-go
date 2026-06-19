@@ -23,12 +23,13 @@ jobs:
           fetch-depth: 0
 
       - name: Download native libraries from vaultblob-core release
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release download "${{ inputs.version }}" \
             --repo "${{ inputs.core_repo }}" \
-            --dir /tmp/native-libs
+            --dir /tmp/native-libs || echo "No core release ${{ inputs.version }} — keeping existing binaries"
 
       - name: Install native libraries into bin/
         run: |
@@ -54,7 +55,7 @@ jobs:
           git config user.email "github-actions@github.com"
 
           git add -f bin/
-          git commit -m "Update native binaries for ${{ inputs.version }}"
+          git diff --cached --quiet || git commit -m "Update native binaries for ${{ inputs.version }}"
 
           TAG="${{ inputs.version }}"
           git tag "$TAG"
