@@ -4,12 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version tag (e.g. v0.1.0)"
+        description: "Go module version (e.g. v0.1.0)"
         required: true
-      core_repo:
-        description: "vaultblob-core repo (owner/repo)"
-        required: true
-        default: f4vzvy99f7-sys/vaultblob-core
 
 permissions:
   contents: write
@@ -35,14 +31,17 @@ jobs:
       - name: Run go mod tidy
         run: go mod tidy
 
-      - name: Download native libraries from vaultblob-core release
-        continue-on-error: true
+      - name: Read declared core version
+        id: core
+        run: echo "value=$(cat .core-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Download native libraries from vaultblob-core
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download "${{ inputs.version }}" \
-            --repo "${{ inputs.core_repo }}" \
-            --dir /tmp/native-libs || echo "No core release ${{ inputs.version }} — keeping existing binaries"
+          gh release download "${{ steps.core.outputs.value }}" \
+            --repo "f4vzvy99f7-sys/vaultblob-core" \
+            --dir /tmp/native-libs || echo "No core release ${{ steps.core.outputs.value }} — keeping existing binaries"
 
       - name: Install native libraries into bin/
         run: |
@@ -87,4 +86,4 @@ jobs:
         run: |
           gh release create "${{ inputs.version }}" \
             --title "${{ inputs.version }}" \
-            --notes "Auto-generated from vaultblob-core ${{ inputs.version }}"
+            --notes "Go bindings for vaultblob-core ${{ steps.core.outputs.value }}"
