@@ -1,5 +1,3 @@
-# Real compiled native libraries — never commit binaries to main branch
-# CI replaces 0-byte placeholders in release tags only
-bin/**/*.so
-bin/**/*.dylib
-bin/**/*.dll
+# No gitignore for bin binaries — they must be tracked (even as 0-byte placeholders)
+# for //go:embed to work when Go module consumers download via go get.
+# Release workflow replaces placeholders with real binaries and force-adds them.
