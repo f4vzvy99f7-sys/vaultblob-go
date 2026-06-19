@@ -23,6 +23,8 @@ jobs:
           fetch-depth: 0
 
       - name: Download native libraries from vaultblob-core release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh release download "${{ inputs.version }}" \
             --repo "${{ inputs.core_repo }}" \
@@ -51,7 +53,7 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add bin/
+          git add -f bin/
           git commit -m "Update native binaries for ${{ inputs.version }}"
 
           TAG="${{ inputs.version }}"
@@ -68,7 +70,7 @@ jobs:
 
       - name: Create GitHub release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ inputs.version }}" \
             --title "${{ inputs.version }}" \
