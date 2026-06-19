@@ -22,6 +22,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Set version in root go.mod
+        run: |
+          VER="${{ inputs.version }}"
+          # Strip leading 'v' for matching (go versions don't include 'v' in file)
+          sed -i "s/v0\.0\.0/${VER}/g" go.mod
+
+      - name: Run go mod tidy
+        run: go mod tidy
+
       - name: Download native libraries from vaultblob-core release
         continue-on-error: true
         env:
@@ -54,16 +67,15 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add -f bin/
-          git diff --cached --quiet || git commit -m "Update native binaries for ${{ inputs.version }}"
+          git add -f bin/ go.mod go.sum
+          git diff --cached --quiet || git commit -m "release ${{ inputs.version }}"
 
           TAG="${{ inputs.version }}"
           git tag "$TAG"
-          git tag "bin/darwin_amd64/$TAG"
-          git tag "bin/darwin_arm64/$TAG"
-          git tag "bin/linux_amd64/$TAG"
-          git tag "bin/linux_arm64/$TAG"
-          git tag "bin/windows_amd64/$TAG"
+          for dir in bin/*/; do
+            platform="$(basename "$dir")"
+            git tag "bin/${platform}/${TAG}"
+          done
 
           git remote set-url origin \
             "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
