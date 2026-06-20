@@ -1,5 +1,10 @@
+//go:build darwin && amd64
+
 package vaultblob
 
-import "github.com/f4vzvy99f7-sys/vaultblob-go/bin/darwin_amd64"
+import _ "embed"
 
-func init() { registerBinary(darwin_amd64.LibCore) }
+//go:embed libs/libvaultblob_darwin_amd64.dylib
+var darwinAmd64Lib []byte
+
+func init() { libBinary = darwinAmd64Lib }

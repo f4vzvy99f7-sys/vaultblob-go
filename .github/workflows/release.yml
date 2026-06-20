@@ -43,19 +43,19 @@ jobs:
             --repo "f4vzvy99f7-sys/vaultblob-core" \
             --dir /tmp/native-libs || echo "No core release ${{ steps.core.outputs.value }} — keeping existing binaries"
 
-      - name: Install native libraries into bin/
+      - name: Install native libraries into libs/
         run: |
           declare -A MAP
-          MAP["libvaultblob.so-linux-amd64"]="linux_amd64/libvaultblob.so"
-          MAP["libvaultblob.so-linux-arm64"]="linux_arm64/libvaultblob.so"
-          MAP["libvaultblob.dylib-darwin-amd64"]="darwin_amd64/libvaultblob.dylib"
-          MAP["libvaultblob.dylib-darwin-arm64"]="darwin_arm64/libvaultblob.dylib"
-          MAP["vaultblob.dll-windows-amd64"]="windows_amd64/vaultblob.dll"
+          MAP["libvaultblob.dylib-darwin-amd64"]="libvaultblob_darwin_amd64.dylib"
+          MAP["libvaultblob.dylib-darwin-arm64"]="libvaultblob_darwin_arm64.dylib"
+          MAP["libvaultblob.so-linux-amd64"]="libvaultblob_linux_amd64.so"
+          MAP["libvaultblob.so-linux-arm64"]="libvaultblob_linux_arm64.so"
+          MAP["vaultblob.dll-windows-amd64"]="libvaultblob_windows_amd64.dll"
 
           for asset in "${!MAP[@]}"; do
             if [ -f "/tmp/native-libs/$asset" ]; then
-              cp "/tmp/native-libs/$asset" "bin/${MAP[$asset]}"
-              echo "Installed $asset → bin/${MAP[$asset]}"
+              cp "/tmp/native-libs/$asset" "libs/${MAP[$asset]}"
+              echo "Installed $asset → libs/${MAP[$asset]}"
             else
               echo "Warning: $asset not found in release assets"
             fi
@@ -66,15 +66,11 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add -f bin/ go.mod go.sum
+          git add -f libs/ go.mod go.sum
           git diff --cached --quiet || git commit -m "release ${{ inputs.version }}"
 
           TAG="${{ inputs.version }}"
           git tag "$TAG"
-          for dir in bin/*/; do
-            platform="$(basename "$dir")"
-            git tag "bin/${platform}/${TAG}"
-          done
 
           git remote set-url origin \
             "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"

@@ -2,6 +2,7 @@ package vaultblob
 
 import (
 	"errors"
+	"io"
 	"unsafe"
 )
 
@@ -121,6 +122,103 @@ func (s *Session) ReadFile(fileID string) ([]byte, error) {
 	copy(data, slice)
 	vaultFreeBytes((*byte)(unsafe.Pointer(p)), outLen)
 	return data, nil
+}
+
+func (s *Session) ReadFileRange(fileID string, offset, length uint64) ([]byte, error) {
+	if s.handle == nil {
+		return nil, errors.New("vaultblob: session closed")
+	}
+
+	var outData *byte
+	var outLen int
+	var errPtr *byte
+
+	result := vaultReadFileRange(uintptr(s.handle), cstr(fileID), offset, length, &outData, &outLen, &errPtr)
+	if result != 0 {
+		msg := cstrFromPtr(errPtr)
+		vaultFreeString(errPtr)
+		return nil, errors.New(msg)
+	}
+
+	if outLen == 0 {
+		return nil, nil
+	}
+
+	data := make([]byte, outLen)
+	slice := unsafe.Slice(outData, outLen)
+	copy(data, slice)
+	vaultFreeBytes(outData, outLen)
+	return data, nil
+}
+
+type FileReader struct {
+	s        *Session
+	fileID   string
+	offset   uint64
+	fileSize uint64
+}
+
+func (r *FileReader) Read(p []byte) (int, error) {
+	if r.s == nil || r.s.handle == nil {
+		return 0, errors.New("vaultblob: session closed")
+	}
+
+	if r.fileSize == 0 {
+		size, err := r.s.FileSize(r.fileID)
+		if err != nil {
+			return 0, err
+		}
+		r.fileSize = size
+	}
+
+	if r.offset >= r.fileSize {
+		return 0, io.EOF
+	}
+
+	length := uint64(len(p))
+	remaining := r.fileSize - r.offset
+	if length > remaining {
+		length = remaining
+	}
+
+	data, err := r.s.ReadFileRange(r.fileID, r.offset, length)
+	if err != nil {
+		return 0, err
+	}
+
+	n := copy(p, data)
+	r.offset += uint64(n)
+	return n, nil
+}
+
+type FileReadSeeker struct {
+	FileReader
+}
+
+func (rs *FileReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	var newOffset int64
+	switch whence {
+	case io.SeekStart:
+		newOffset = offset
+	case io.SeekCurrent:
+		newOffset = int64(rs.offset) + offset
+	case io.SeekEnd:
+		if rs.fileSize == 0 {
+			size, err := rs.s.FileSize(rs.fileID)
+			if err != nil {
+				return 0, err
+			}
+			rs.fileSize = size
+		}
+		newOffset = int64(rs.fileSize) + offset
+	default:
+		return 0, errors.New("vaultblob: invalid whence")
+	}
+	if newOffset < 0 {
+		return 0, errors.New("vaultblob: negative position")
+	}
+	rs.offset = uint64(newOffset)
+	return newOffset, nil
 }
 
 func (s *Session) FileSize(fileID string) (uint64, error) {

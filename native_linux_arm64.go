@@ -1,5 +1,10 @@
+//go:build linux && arm64
+
 package vaultblob
 
-import "github.com/f4vzvy99f7-sys/vaultblob-go/bin/linux_arm64"
+import _ "embed"
 
-func init() { registerBinary(linux_arm64.LibCore) }
+//go:embed libs/libvaultblob_linux_arm64.so
+var linuxArm64Lib []byte
+
+func init() { libBinary = linuxArm64Lib }

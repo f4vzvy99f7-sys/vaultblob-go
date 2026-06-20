@@ -44,6 +44,7 @@ func ensureLib() error {
 		purego.RegisterLibFunc(&vaultClose, handle, "vaultblob_close")
 		purego.RegisterLibFunc(&vaultPutFile, handle, "vaultblob_put_file")
 		purego.RegisterLibFunc(&vaultReadFile, handle, "vaultblob_read_file")
+		purego.RegisterLibFunc(&vaultReadFileRange, handle, "vaultblob_read_file_range")
 		purego.RegisterLibFunc(&vaultFileSize, handle, "vaultblob_file_size")
 		purego.RegisterLibFunc(&vaultBlobIDs, handle, "vaultblob_blob_ids")
 		purego.RegisterLibFunc(&vaultFreeString, handle, "vaultblob_free_string")
@@ -56,10 +57,6 @@ func ensureLib() error {
 }
 
 var libBinary []byte
-
-func registerBinary(data []byte) {
-	libBinary = data
-}
 
 func libFilename() string {
 	switch runtime.GOOS {
@@ -82,6 +79,8 @@ var (
 	vaultPutFile func(session uintptr, data *byte, dataLen int, fileID *byte, outFileID **byte, errOut **byte) int32
 
 	vaultReadFile func(session uintptr, fileID *byte, outLen *int, errOut **byte) uintptr
+
+	vaultReadFileRange func(session uintptr, fileID *byte, offset, length uint64, outData **byte, outLen *int, errOut **byte) int32
 
 	vaultFileSize func(session uintptr, fileID *byte, outSize *uint64, errOut **byte) int32
 
