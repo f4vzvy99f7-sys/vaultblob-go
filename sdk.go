@@ -151,6 +151,14 @@ func (s *Session) ReadFileRange(fileID string, offset, length uint64) ([]byte, e
 	return data, nil
 }
 
+func (s *Session) NewFileReader(fileID string) *FileReader {
+	return &FileReader{s: s, fileID: fileID}
+}
+
+func (s *Session) NewFileReadSeeker(fileID string) *FileReadSeeker {
+	return &FileReadSeeker{FileReader: FileReader{s: s, fileID: fileID}}
+}
+
 type FileReader struct {
 	s        *Session
 	fileID   string
