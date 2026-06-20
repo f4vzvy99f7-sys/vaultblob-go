@@ -18,7 +18,7 @@ type Session struct {
 	handle unsafe.Pointer
 }
 
-func OpenVault(dir string, vaultID [16]byte, masterKey [32]byte, opts *Options) (*Session, error) {
+func OpenVault(dir string, masterKey [32]byte, opts *Options) (*Session, error) {
 	if err := ensureLib(); err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func OpenVault(dir string, vaultID [16]byte, masterKey [32]byte, opts *Options) 
 	}
 
 	var errPtr *byte
-	handle := vaultOpenVault(cstr(dir), &vaultID[0], &masterKey[0], maxChunk, maxBlob, split, stripe, verbose, &errPtr)
+	handle := vaultOpenVault(cstr(dir), &masterKey[0], maxChunk, maxBlob, split, stripe, verbose, &errPtr)
 	if handle == 0 {
 		msg := cstrFromPtr(errPtr)
 		vaultFreeString(errPtr)

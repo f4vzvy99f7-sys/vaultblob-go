@@ -72,7 +72,7 @@ func libFilename() string {
 }
 
 var (
-	vaultOpenVault func(path, vaultID, masterKey *byte, maxChunkSize, maxBlobSize uint64, split, stripe, verbose int32, errOut **byte) uintptr
+	vaultOpenVault func(path, masterKey *byte, maxChunkSize, maxBlobSize uint64, split, stripe, verbose int32, errOut **byte) uintptr
 
 	vaultClose func(session uintptr)
 
